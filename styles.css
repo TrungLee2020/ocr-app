@@ -1,0 +1,74 @@
+/* Đảm bảo trang chiếm toàn bộ chiều cao viewport, footer ở dưới */
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Nội dung chính mở rộng, padding linh hoạt */
+main {
+    flex: 1;
+}
+
+/* Kiểu dáng khu vực xem trước tài liệu, responsive */
+#previewArea, #advancedPreviewArea {
+    width: 100%;
+    height: 256px; /* h-64 trên di động cho dễ xem */
+    overflow: hidden; /* Ngăn nội dung tràn */
+}
+
+/* Responsive chiều cao khu vực xem trước */
+@media (min-width: 640px) {
+    #previewArea, #advancedPreviewArea {
+        height: 192px; /* h-48 trên màn hình lớn hơn */
+    }
+}
+
+/* Hình ảnh co giãn hợp lý trong khu vực xem trước */
+#previewArea img, #advancedPreviewArea img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain; /* Giữ tỷ lệ hình ảnh */
+}
+
+/* File PDF hiển thị đầy đủ, hỗ trợ di động */
+#previewArea embed, #advancedPreviewArea embed {
+    width: 100%;
+    height: 100%;
+}
+
+/* Kiểu dáng cho danh sách kết quả nhiều file */
+#resultArea, #advancedResultArea {
+    max-height: 300px; /* Giới hạn chiều cao để cuộn */
+    overflow-y: auto; /* Cho phép cuộn dọc */
+}
+
+/* Kiểu dáng cho từng file trong danh sách kết quả */
+.result-file {
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    border-bottom: 1px solid #e5e7eb; /* Tailwind gray-200 */
+}
+
+/* Kiểu dáng cho tiêu đề file */
+.result-file h5 {
+    font-weight: 600;
+    color: #1f2937; /* Tailwind gray-800 */
+}
+
+/* Kiểu dáng cho nội dung trang */
+.result-page {
+    margin-top: 0.5rem;
+    padding-left: 1rem;
+    border-left: 2px solid #3b82f6; /* Tailwind blue-500 */
+}
+
+/* Hiệu ứng fade-in cho kết quả */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.result-file {
+    animation: fadeIn 0.3s ease-in;
+}

@@ -1,0 +1,251 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!-- Tài liệu HTML chính cho giao diện SmartOCR, tối ưu responsive, hỗ trợ upload nhiều file -->
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <!-- Thiết lập ký tự UTF-8 và hỗ trợ responsive -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Tiêu đề trang -->
+    <title>SmartOCR - Nhận dạng văn bản tiếng Việt</title>
+    <!-- Tải Tailwind CSS từ CDN để tạo kiểu nhanh, hỗ trợ responsive -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tải font Inter để giao diện hiện đại, dễ đọc trên di động -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Liên kết file CSS tùy chỉnh -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-gray-100 font-['Inter']">
+    <!-- Phần đầu trang (Header), padding linh hoạt cho di động -->
+    <header class="bg-white shadow">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <!-- Logo SmartOCR, font điều chỉnh theo kích thước màn hình -->
+            <h1 class="text-xl sm:text-2xl font-bold text-blue-600">SmartOCR</h1>
+            <!-- Menu điều hướng, nút lớn hơn trên di động -->
+            <div class="flex items-center space-x-2 sm:space-x-4">
+                <a href="#" class="text-base text-gray-600 hover:text-blue-600">Hỗ trợ</a>
+                <a href="#" class="text-base text-gray-600 hover:text-blue-600">Đăng nhập</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Phần nội dung chính, padding linh hoạt -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <!-- Phần tiêu đề giới thiệu, font responsive -->
+        <section class="text-center mb-8 sm:mb-12">
+            <h2 class="text-2xl sm:text-3xl font-semibold text-gray-800">Nhận dạng văn bản tiếng Việt</h2>
+            <p class="mt-2 text-base sm:text-lg text-gray-600">Chuyển đổi hình ảnh, file scan thành văn bản điện tử với độ chính xác cao</p>
+        </section>
+
+        <!-- Thanh tab, nút lớn hơn trên di động -->
+        <div class="flex justify-center mb-6 sm:mb-8">
+            <button class="px-3 py-2 sm:px-4 sm:py-2 bg-blue-600 text-white rounded-l-lg font-medium text-base active-tab" onclick="showTab('basic')">Nhận dạng cơ bản</button>
+            <button class="px-3 py-2 sm:px-4 sm:py-2 bg-gray-200 text-gray-700 rounded-r-lg font-medium text-base" onclick="showTab('advanced')">Nhận dạng nâng cao</button>
+        </div>
+
+        <!-- Phần Nhận dạng cơ bản, bố cục 1 cột trên di động -->
+        <section id="basic-tab" class="tab-content">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+                <!-- Khu vực nhập liệu, padding lớn hơn trên di động -->
+                <div class="bg-white p-4 sm:p-6 rounded-lg shadow">
+                    <h3 class="text-lg sm:text-xl font-semibold text-gray-800 mb-4">Tải lên tài liệu</h3>
+                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-6 text-center">
+                        <p class="text-base text-gray-600">Kéo thả file vào đây hoặc</p>
+                        <button class="mt-2 px-4 py-2 bg-blue-600 text-white rounded text-base hover:bg-blue-700" onclick="document.getElementById('fileInput').click()">Chọn file</button>
+                        <input type="file" id="fileInput" accept=".pdf,.jpg,.png" multiple class="hidden" onchange="handleFileUpload(event)">
+                        <p class="mt-2 text-sm sm:text-base text-gray-500">Hỗ trợ định dạng: PDF, JPG, PNG (tối đa 10MB mỗi file, 5 file)</p>
+                    </div>
+
+                    <!-- Chọn ngôn ngữ, input lớn hơn trên di động -->
+                    <div class="mt-4 sm:mt-6">
+                        <label class="block text-base font-medium text-gray-700">Ngôn ngữ</label>
+                        <select id="basicLanguage" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base">
+                            <option>Tiếng Việt</option>
+                            <option>Tiếng Anh</option>
+                            <option>Tiếng Trung</option>
+                            <option>Tiếng Nhật</option>
+                            <option>Tiếng Hàn</option>
+                        </select>
+                    </div>
+
+                    <!-- Chọn định dạng đầu ra -->
+                    <div class="mt-4">
+                        <label class="block text-base font-medium text-gray-700">Định dạng đầu ra</label>
+                        <select class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base">
+                            <option>Văn bản thuần</option>
+                            <option>File Word (.docx)</option>
+                            <option>File Excel (.xlsx)</option>
+                            <option>PDF có thể tìm kiếm</option>
+                        </select>
+                    </div>
+
+                    <!-- Nút bắt đầu, full-width trên di động -->
+                    <button class="mt-4 sm:mt-6 w-full px-4 py-2 bg-blue-600 text-white rounded text-base hover:bg-blue-700" onclick="startRecognition()">Bắt đầu nhận dạng</button>
+                </div>
+
+                <!-- Khu vực kết quả, full-width trên di động -->
+                <div class="bg-white p-4 sm:p-6 rounded-lg shadow">
+                    <h3 class="text-lg sm:text-xl font-semibold text-gray-800 mb-4">Kết quả nhận dạng</h3>
+                    <div id="resultArea" class="border border-gray-300 rounded-lg p-4 min-h-[150px] sm:min-h-[200px] text-base text-gray-600 overflow-auto">
+                        <p>Chưa có tài liệu nào được xử lý. Tải lên tài liệu để xem kết quả.</p>
+                    </div>
+                    <!-- Loading spinner -->
+                    <div id="basicLoading" class="hidden text-center mt-4">
+                        <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600 mx-auto"></div>
+                        <p class="text-base text-gray-600 mt-2">Đang xử lý...</p>
+                    </div>
+                    <div class="mt-4">
+                        <h4 class="text-base font-medium text-gray-700">Xem trước tài liệu</h4>
+                        <div id="previewArea" class="mt-2 border border-gray-300 rounded-lg h-64 sm:h-48 flex items-center justify-center text-gray-500">
+                            Chưa có tài liệu để xem trước
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Phần Nhận dạng nâng cao, tương tự Basic nhưng có prompt -->
+        <section id="advanced-tab" class="tab-content hidden">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+                <!-- Khu vực nhập liệu -->
+                <div class="bg-white p-4 sm:p-6 rounded-lg shadow">
+                    <h3 class="text-lg sm:text-xl font-semibold text-gray-800 mb-4">Nhận dạng văn bản nâng cao</h3>
+                    <p class="text-base text-gray-600 mb-4">Nhận dạng chuyên sâu cho các loại giấy tờ đặc biệt</p>
+
+                    <!-- Chọn loại giấy tờ -->
+                    <div class="mb-4 sm:mb-6">
+                        <label class="block text-base font-medium text-gray-700">Loại giấy tờ</label>
+                        <select id="advancedDocType" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base">
+                            <option>Chọn loại giấy tờ</option>
+                            <option>CMND/CCCD</option>
+                            <option>Bằng lái xe</option>
+                            <option>Hộ chiếu</option>
+                            <option>Hóa đơn</option>
+                            <option>Hợp đồng</option>
+                            <option>Khác</option>
+                        </select>
+                    </div>
+
+                    <!-- Tải lên tài liệu -->
+                    <div class="mb-4 sm:mb-6">
+                        <h4 class="text-base font-medium text-gray-700">Tải lên tài liệu</h4>
+                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-6 text-center">
+                            <p class="text-base text-gray-600">Kéo thả file vào đây hoặc</p>
+                            <button class="mt-2 px-4 py-2 bg-blue-600 text-white rounded text-base hover:bg-blue-700" onclick="document.getElementById('advancedFileInput').click()">Chọn file</button>
+                            <input type="file" id="advancedFileInput" accept=".pdf,.jpg,.png" multiple class="hidden" onchange="handleAdvancedFileUpload(event)">
+                            <p class="mt-2 text-sm sm:text-base text-gray-500">Hỗ trợ định dạng: PDF, JPG, PNG (tối đa 10MB mỗi file, 5 file)</p>
+                        </div>
+                    </div>
+
+                    <!-- Tùy chọn nâng cao -->
+                    <div class="mb-4 sm:mb-6">
+                        <h4 class="text-base font-medium text-gray-700">Tùy chọn nâng cao</h4>
+                        <div class="mt-2 space-y-2">
+                            <label class="flex items-center">
+                                <input type="checkbox" id="tables" class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <span class="ml-2 text-base text-gray-600">Nhận dạng bảng biểu</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" id="handwriting" class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <span class="ml-2 text-base text-gray-600">Nhận dạng chữ viết tay</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" id="preserveLayout" class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <span class="ml-2 text-base text-gray-600">Bảo toàn bố cục tài liệu</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Nhập prompt -->
+                    <div class="mb-4">
+                        <label class="block text-base font-medium text-gray-700">Hướng dẫn nhận dạng (Prompt)</label>
+                        <textarea id="advancedPromptInput" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base" rows="4" placeholder="Nhập hướng dẫn nhận dạng, ví dụ: 'Trích xuất số CMND và họ tên từ giấy tờ'"></textarea>
+                        <p class="mt-2 text-sm sm:text-base text-gray-500">Nhập hướng dẫn để tùy chỉnh nhận dạng hoặc chọn mẫu dưới đây.</p>
+                    </div>
+
+                    <!-- Mẫu prompt -->
+                    <div class="mb-4">
+                        <label class="block text-base font-medium text-gray-700">Mẫu hướng dẫn</label>
+                        <div class="mt-2 flex flex-wrap gap-2">
+                            <button class="px-3 py-1 bg-gray-100 text-gray-700 rounded text-base hover:bg-gray-200" onclick="setAdvancedPrompt('Trích xuất số CMND và họ tên từ giấy tờ')">Trích xuất CMND & họ tên</button>
+                            <button class="px-3 py-1 bg-gray-100 text-gray-700 rounded text-base hover:bg-gray-200" onclick="setAdvancedPrompt('Trích xuất số hộ chiếu và ngày hết hạn')">Trích xuất hộ chiếu</button>
+                            <button class="px-3 py-1 bg-gray-100 text-gray-700 rounded text-base hover:bg-gray-200" onclick="setAdvancedPrompt('Trích xuất tổng tiền và ngày hóa đơn')">Trích xuất hóa đơn</button>
+                            <button class="px-3 py-1 bg-gray-100 text-gray-700 rounded text-base hover:bg-gray-200" onclick="setAdvancedPrompt('Trích xuất điều khoản chính từ hợp đồng')">Trích xuất hợp đồng</button>
+                        </div>
+                    </div>
+
+                    <!-- Nút bắt đầu nhận dạng nâng cao -->
+                    <button class="mt-4 sm:mt-6 w-full px-4 py-2 bg-blue-600 text-white rounded text-base hover:bg-blue-700" onclick="startAdvancedRecognition()">Nhận dạng nâng cao</button>
+                </div>
+
+                <!-- Khu vực kết quả -->
+                <div class="bg-white p-4 sm:p-6 rounded-lg shadow">
+                    <h3 class="text-lg sm:text-xl font-semibold text-gray-800 mb-4">Kết quả nhận dạng</h3>
+                    <div id="advancedResultArea" class="border border-gray-300 rounded-lg p-4 min-h-[150px] sm:min-h-[200px] text-base text-gray-600 overflow-auto">
+                        <p>Chưa có giấy tờ nào được xử lý. Chọn loại giấy tờ và tải lên để bắt đầu.</p>
+                    </div>
+                    <!-- Loading spinner -->
+                    <div id="advancedLoading" class="hidden text-center mt-4">
+                        <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600 mx-auto"></div>
+                        <p class="text-base text-gray-600 mt-2">Đang xử lý...</p>
+                    </div>
+                    <div class="mt-4">
+                        <h4 class="text-base font-medium text-gray-700">Xem trước giấy tờ</h4>
+                        <div id="advancedPreviewArea" class="mt-2 border border-gray-300 rounded-lg h-64 sm:h-48 flex items-center justify-center text-gray-500">
+                            Chưa có giấy tờ để xem trước
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Phần chân trang (Footer), đơn giản và responsive -->
+    <footer class="bg-white shadow mt-8 sm:mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <p class="text-center text-base text-gray-500">SmartOCR</p>
+        </div>
+    </footer>
+
+    <!-- Liên kết file JavaScript -->
+    <script src="script.js"></script>
+</body>
+</html>
