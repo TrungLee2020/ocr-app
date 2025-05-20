@@ -1,0 +1,9 @@
+syncio  
+Flask 
+flask-cors  
+PyPDF2  
+pdf2image  
+google-generativeai  
+Pillow  
+redis
+PyMuPDF
